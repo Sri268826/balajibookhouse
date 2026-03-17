@@ -1,0 +1,59 @@
+# Deployment Guide: Sri Balaji Book House
+
+Your website is currently built using **Next.js**, **SQLite** (via `better-sqlite3`), and **Local File Storage** (for media uploads). 
+
+Because SQLite stores data in a local file (`shop.db`) and user uploads are saved directly to `public/uploads`, **you cannot deploy this to a "Serverless" platform like Vercel or Netlify easily**, as those platforms frequently erase local files and databases.
+
+To keep everything working perfectly without changing your code, you need a **Virtual Private Server (VPS)** or a platform that provides **Persistent Storage**.
+
+Here are the best ways to deploy your application:
+
+---
+
+## Option 1: Render.com (Recommended - Easiest)
+Render offers "Web Services" with "Background Disks" which are perfect for SQLite and local uploads.
+
+1. **Create an Account**: Go to [Render.com](https://render.com/) and sign up.
+2. **Push Code to GitHub**: Make sure your project is uploaded to a GitHub repository.
+3. **Create a New Web Service**:
+   - Connect your GitHub repository.
+   - **Environment**: Node
+   - **Build Command**: `npm install && npm run build`
+   - **Start Command**: `npm run start`
+4. **Configure Persistent Disk**:
+   - Scroll down to "Advanced".
+   - Add a Disk.
+   - **Name**: `data` (or anything)
+   - **Mount Path**: `/opt/render/project/src/data`
+   - *Note*: You will need to tell your code to save the `shop.db` and the `public/uploads` folder into this mount path. I can help with this adjustment if you choose this route.
+
+---
+
+## Option 2: DigitalOcean Droplet / AWS EC2 / Any VPS
+This involves renting a basic Linux server (usually ~$5-6/month) and running your app continuously.
+
+1. Rent a server on DigitalOcean, Linode, AWS, or Hostinger.
+2. Connect to the server via SSH.
+3. Install **Node.js**, **Git**, and **PM2** (a process manager).
+4. Clone your code from GitHub onto the server.
+5. In the terminal of your server, run:
+   ```bash
+   npm install
+   npm run build
+   pm2 start npm --name "balaji-shop" -- start
+   ```
+6. (Optional but recommended): Set up NGINX as a reverse proxy to point your custom domain directly to `localhost:3000` and secure it with Let's Encrypt (free SSL).
+
+---
+
+## Option 3: Local Network Hosting (Free)
+If you only need this for yourself or people walking into your physical store, you don't even need to put it on the public internet.
+
+1. Start the app on your current computer normally: `npm run dev` or `npm run start`.
+2. Find your computer's local IP address (e.g., `192.168.1.5`).
+3. Anyone connected to the exact same Wi-Fi network can visit `http://192.168.1.5:3000` on their phones to view the catalog.
+
+---
+
+### Do you want me to help you initiate Option 1 or Option 2?
+If you want to put this on the internet for everyone, **Option 2 (VPS setup via Hostinger or DigitalOcean)** is the most professional route. Let me know which path you want to take!
