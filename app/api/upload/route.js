@@ -23,7 +23,12 @@ export async function POST(request) {
         const ext = path.extname(file.name);
         const filename = `${randomBytes(16).toString('hex')}${ext}`;
 
-        const uploadDir = path.join(process.cwd(), 'public', 'uploads');
+        // UPLOAD_DIR should point to the persistent disk on Render
+        // e.g. /opt/render/project/src/data/uploads
+        // Falls back to public/uploads for local development
+        const uploadDir = process.env.UPLOAD_DIR
+            ? process.env.UPLOAD_DIR
+            : path.join(process.cwd(), 'public', 'uploads');
 
         // Ensure dir exists
         await fs.mkdir(uploadDir, { recursive: true });
@@ -35,9 +40,14 @@ export async function POST(request) {
         const mimeType = file.type;
         const type = mimeType.startsWith('video/') ? 'video' : 'image';
 
+        // If using persistent disk, serve via /api/media/ route (not static public/)
+        const url = process.env.UPLOAD_DIR
+            ? `/api/media/${filename}`
+            : `/uploads/${filename}`;
+
         return NextResponse.json({
             success: true,
-            url: `/uploads/${filename}`,
+            url,
             type
         });
     } catch (error) {
