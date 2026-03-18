@@ -135,7 +135,7 @@ export default async function ProductDetails({ params }) {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--success)', flexShrink: 0 }} />
                         <span style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--success)' }}>In Stock</span>
-                        <span style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>· Available for immediate delivery</span>
+                        <span style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>· Available </span>
                     </div>
 
                     {/* Divider */}
