@@ -1,21 +1,31 @@
 import Link from 'next/link';
+import db from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 
-async function getProduct(id) {
-    const origin = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+function getProduct(id) {
     try {
-        const res = await fetch(`${origin}/api/products/${id}`, { cache: 'no-store' });
-        if (!res.ok) return null;
-        return res.json();
+        const product = db.prepare(`
+            SELECT p.*, c.name as category_name
+            FROM products p
+            LEFT JOIN categories c ON p.category_id = c.id
+            WHERE p.id = ?
+        `).get(id);
+
+        if (!product) return null;
+
+        const media = db.prepare('SELECT id, url, type FROM product_media WHERE product_id = ?').all(id);
+        product.media = media;
+        return product;
     } catch (e) {
+        console.error('getProduct error:', e);
         return null;
     }
 }
 
 export default async function ProductDetails({ params }) {
     const resolvedParams = await params;
-    const product = await getProduct(resolvedParams.id);
+    const product = getProduct(resolvedParams.id);
 
     if (!product) {
         return (
@@ -71,9 +81,9 @@ export default async function ProductDetails({ params }) {
                         ) : (
                             <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.75rem' }}>
                                 <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text-muted)' }}>
-                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                                    <circle cx="8.5" cy="8.5" r="1.5"/>
-                                    <polyline points="21 15 16 10 5 21"/>
+                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                                    <circle cx="8.5" cy="8.5" r="1.5" />
+                                    <polyline points="21 15 16 10 5 21" />
                                 </svg>
                                 <span style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>No image available</span>
                             </div>
@@ -154,7 +164,7 @@ export default async function ProductDetails({ params }) {
                             style={{ padding: '0.875rem 1.5rem', fontSize: '1rem', borderRadius: '10px', gap: '0.625rem' }}
                         >
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+                                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
                             </svg>
                             Enquire on WhatsApp
                         </a>
@@ -166,9 +176,9 @@ export default async function ProductDetails({ params }) {
                             style={{ padding: '0.875rem 1.5rem', fontSize: '1rem', borderRadius: '10px', gap: '0.625rem' }}
                         >
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
-                                <polyline points="16 6 12 2 8 6"/>
-                                <line x1="12" y1="2" x2="12" y2="15"/>
+                                <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+                                <polyline points="16 6 12 2 8 6" />
+                                <line x1="12" y1="2" x2="12" y2="15" />
                             </svg>
                             Share this Product
                         </a>
@@ -180,7 +190,6 @@ export default async function ProductDetails({ params }) {
                         marginTop: '0.5rem'
                     }}>
                         {[
-                            { icon: '🚚', label: 'Fast Delivery', sub: 'Quick dispatch' },
                             { icon: '💬', label: 'WhatsApp Support', sub: 'Direct enquiries' },
                             { icon: '📦', label: 'Wholesale Available', sub: 'Bulk orders welcome' },
                             { icon: '✅', label: 'Quality Assured', sub: 'Curated selection' },

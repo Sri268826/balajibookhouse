@@ -1,27 +1,34 @@
 import ProductCard from '@/components/ProductCard';
 import Link from 'next/link';
+import db from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 
-async function getLatestProducts() {
-  const origin = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+function getLatestProducts() {
   try {
-    const res = await fetch(`${origin}/api/products?latest=true&limit=8`, { cache: 'no-store' });
-    if (!res.ok) return [];
-    const data = await res.json();
-    return data.products || [];
+    const rows = db.prepare(`
+      SELECT p.*, c.name as category_name,
+        json_group_array(json_object('id', m.id, 'url', m.url, 'type', m.type)) as media
+      FROM products p
+      LEFT JOIN categories c ON p.category_id = c.id
+      LEFT JOIN product_media m ON p.id = m.product_id
+      WHERE p.is_latest = 1
+      GROUP BY p.id
+      ORDER BY p.created_at DESC
+      LIMIT 8
+    `).all();
+    return rows.map(p => ({ ...p, media: JSON.parse(p.media).filter(m => m.id !== null) }));
   } catch (e) {
+    console.error('getLatestProducts error:', e);
     return [];
   }
 }
 
-async function getCategories() {
-  const origin = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+function getCategories() {
   try {
-    const res = await fetch(`${origin}/api/categories`, { cache: 'no-store' });
-    if (!res.ok) return [];
-    return res.json();
+    return db.prepare('SELECT * FROM categories ORDER BY name').all();
   } catch (e) {
+    console.error('getCategories error:', e);
     return [];
   }
 }
@@ -67,10 +74,8 @@ const features = [
 ];
 
 export default async function Home() {
-  const [latestProducts, categories] = await Promise.all([
-    getLatestProducts(),
-    getCategories(),
-  ]);
+  const latestProducts = getLatestProducts();
+  const categories = getCategories();
 
   return (
     <div>
