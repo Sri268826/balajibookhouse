@@ -30,7 +30,7 @@ This document outlines the steps to deploy the application to Render free tier w
     *   Add the following variables:
         *   `NODE_ENV`: `production`
         *   `JWT_SECRET`: (Generate a secure secret)
-        *   `DATABASE_PATH`: `/opt/render/project/src/data/database.db`
+        *   `DATABASE_PATH`: `/opt/render/project/src/data/database.db` (must match the Mount Path above + `/database.db`)
         *   `NEXT_PUBLIC_SITE_URL`: `https://YOUR-APP-NAME.onrender.com` (Update with your actual URL once created)
         *   `ADMIN_DEFAULT_PASSWORD`: `change_me_to_a_strong_password`
 7.  Click **Create Web Service**.
