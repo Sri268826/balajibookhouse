@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
-import { Edit, Trash2, Plus, ExternalLink, RefreshCw, Tag, X, Check, AlertCircle } from 'lucide-react';
+import { Edit, Trash2, Plus, ExternalLink, RefreshCw, Tag, X, Check, AlertCircle, Download, Upload } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 // ── Small toast notification ─────────────────────────────────────
@@ -209,7 +209,83 @@ function CategoryManager() {
     );
 }
 
-// ── Main Dashboard ───────────────────────────────────────────────
+// ── Backup / Restore Panel ───────────────────────────────────────
+function BackupRestore() {
+    const [restoring, setRestoring] = useState(false);
+    const [message, setMessage] = useState(null);
+    const fileInputRef = useRef(null);
+
+    const handleDownload = async () => {
+        const res = await fetch('/api/admin/backup');
+        if (!res.ok) { setMessage({ text: 'Backup failed', type: 'error' }); return; }
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `bbh-backup-${new Date().toISOString().split('T')[0]}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+        setMessage({ text: 'Backup downloaded!', type: 'success' });
+        setTimeout(() => setMessage(null), 4000);
+    };
+
+    const handleRestore = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        setRestoring(true);
+        setMessage(null);
+        try {
+            const text = await file.text();
+            const json = JSON.parse(text);
+            const res = await fetch('/api/admin/backup', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(json),
+            });
+            const data = await res.json();
+            if (res.ok) {
+                setMessage({ text: data.message, type: 'success' });
+            } else {
+                setMessage({ text: data.error || 'Restore failed', type: 'error' });
+            }
+        } catch (err) {
+            setMessage({ text: 'Invalid backup file', type: 'error' });
+        } finally {
+            setRestoring(false);
+            e.target.value = '';
+        }
+    };
+
+    return (
+        <div style={{ backgroundColor: 'white', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-color)', overflow: 'hidden' }}>
+            <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f8fafc' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
+                    <Download size={18} style={{ color: 'var(--text-muted)' }} />
+                    <h2 style={{ fontSize: '1.1rem', margin: 0, fontWeight: '700' }}>Backup & Restore</h2>
+                </div>
+                <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Keep a backup before every deploy</span>
+            </div>
+            <div style={{ padding: '1.5rem', display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                <button onClick={handleDownload} className="btn btn-primary" style={{ gap: '0.5rem', padding: '0.75rem 1.25rem' }}>
+                    <Download size={16} /> Download Backup
+                </button>
+                <button onClick={() => fileInputRef.current?.click()} disabled={restoring} className="btn btn-secondary" style={{ gap: '0.5rem', padding: '0.75rem 1.25rem', opacity: restoring ? 0.6 : 1 }}>
+                    <Upload size={16} /> {restoring ? 'Restoring…' : 'Restore from Backup'}
+                </button>
+                <input ref={fileInputRef} type="file" accept=".json" style={{ display: 'none' }} onChange={handleRestore} />
+                {message && (
+                    <span style={{ fontSize: '0.875rem', fontWeight: '600', color: message.type === 'error' ? 'var(--danger)' : 'var(--success)' }}>
+                        {message.type === 'success' ? '✅' : '❌'} {message.text}
+                    </span>
+                )}
+            </div>
+            <div style={{ padding: '0.75rem 1.5rem 1.25rem', fontSize: '0.8rem', color: 'var(--text-muted)', borderTop: '1px solid var(--border-color)', backgroundColor: '#fafafa' }}>
+                💡 <strong>How to use:</strong> Download a backup before deploying. After a fresh deploy, upload the backup here to restore all products instantly.
+            </div>
+        </div>
+    );
+}
+
 export default function AdminDashboard() {
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -298,6 +374,9 @@ export default function AdminDashboard() {
                     </div>
                 </div>
             </div>
+
+            {/* Backup & Restore */}
+            <BackupRestore />
 
             {/* Categories manager */}
             <CategoryManager />
