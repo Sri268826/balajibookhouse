@@ -14,10 +14,15 @@ export async function POST(request) {
             return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
         }
 
+        const secret = getJwtSecret();
+        if (!secret) {
+            return NextResponse.json({ error: 'Server configuration error: missing JWT_SECRET' }, { status: 500 });
+        }
+
         const token = await new SignJWT({ sub: user.id, username: user.username })
             .setProtectedHeader({ alg: 'HS256' })
             .setExpirationTime('24h')
-            .sign(getJwtSecret());
+            .sign(secret);
 
         const response = NextResponse.json({ success: true });
 
